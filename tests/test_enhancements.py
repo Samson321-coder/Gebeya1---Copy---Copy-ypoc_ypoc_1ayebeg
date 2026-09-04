@@ -875,6 +875,55 @@ class EnhancementTests(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    def test_renewal_reposts_to_telegram_channel(self):
+        async def run_test():
+            # 1. Create and post listing initially
+            lid = database.add_listing(301, "Plumbing Service", "Addis Ababa - Bole", "500", None, "0911000000", fee_amount=50, listing_type="service", property_purpose="service")
+            database.approve_listing(lid)
+            database.set_channel_message_id(lid, 12345)
+            database.mark_listing_channel_notified(lid)
+
+            self.assertTrue(database.is_listing_channel_notified(lid))
+            self.assertEqual(database.get_channel_message_id(lid), 12345)
+
+            # 2. Simulate 30-day expiration & auto-deletion
+            database.execute_query("UPDATE listings SET created_at = '2020-01-01 00:00:00' WHERE id = ?", (lid,), commit=True)
+            bot = SimpleNamespace(
+                delete_message=AsyncMock(),
+                send_message=AsyncMock(return_value=SimpleNamespace(message_id=67890)),
+                send_photo=AsyncMock(return_value=SimpleNamespace(message_id=67890)),
+                get_me=AsyncMock(return_value=SimpleNamespace(username="AkerayTekerayBot")),
+            )
+            context = SimpleNamespace(bot=bot, user_data={})
+
+            with patch("main.CHANNEL_ID", "-1001234567890"):
+                await main.process_expired_listings(context)
+
+            bot.delete_message.assert_awaited_once_with(chat_id="-1001234567890", message_id=12345)
+            self.assertFalse(database.is_listing_channel_notified(lid))
+            self.assertIsNone(database.get_channel_message_id(lid))
+            self.assertEqual(database.get_listing_by_id(lid)[9], "expired")
+
+            # 3. Owner Renews the listing
+            database.renew_listing(lid)
+            self.assertEqual(database.get_listing_by_id(lid)[9], "pending")
+            self.assertFalse(database.is_listing_channel_notified(lid))
+
+            # 4. Admin approves the renewed listing
+            database.approve_listing(lid)
+            updated_listing = database.get_listing_by_id(lid)
+            self.assertEqual(updated_listing[9], "paid")
+
+            # 5. Repost to Telegram Channel
+            with patch("main.CHANNEL_ID", "-1001234567890"):
+                await main.post_listing_to_channel(context, updated_listing, "service", "service", channel_id="-1001234567890")
+
+            bot.send_message.assert_awaited_once()
+            self.assertTrue(database.is_listing_channel_notified(lid))
+            self.assertEqual(database.get_channel_message_id(lid), 67890)
+
+        asyncio.run(run_test())
+
 if __name__ == "__main__":
     unittest.main()
 

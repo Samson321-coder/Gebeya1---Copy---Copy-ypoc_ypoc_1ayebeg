@@ -2090,9 +2090,11 @@ async def process_expired_listings(context: ContextTypes.DEFAULT_TYPE):
                     await context.bot.delete_message(chat_id=CHANNEL_ID, message_id=channel_msg_id)
                     logger.info(f"Auto-deleted channel message {channel_msg_id} for expired listing {listing_id}")
                     database.set_channel_message_id(listing_id, None)
+                    database.clear_listing_channel_notification(listing_id)
                 except BadRequest as e:
                     logger.warning(f"BadRequest auto-deleting channel message {channel_msg_id} for listing {listing_id}: {e}")
                     database.set_channel_message_id(listing_id, None)
+                    database.clear_listing_channel_notification(listing_id)
                 except Exception as e:
                     logger.warning(f"Failed to auto-delete channel message {channel_msg_id} for expired listing {listing_id}: {e}")
 

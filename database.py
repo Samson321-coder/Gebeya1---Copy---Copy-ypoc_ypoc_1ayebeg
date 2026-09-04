@@ -276,7 +276,7 @@ def set_listing_pending(listing_id):
     execute_query('UPDATE listings SET status = %s WHERE id = %s', ('pending', listing_id), commit=True)
 
 def renew_listing(listing_id):
-    execute_query('UPDATE listings SET status = %s, transaction_id = NULL WHERE id = %s', ('pending', listing_id), commit=True)
+    execute_query('UPDATE listings SET status = %s, transaction_id = NULL, channel_notified_at = NULL, channel_message_id = NULL WHERE id = %s', ('pending', listing_id), commit=True)
 
 def approve_listing(listing_id):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
