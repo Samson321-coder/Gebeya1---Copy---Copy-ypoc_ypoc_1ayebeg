@@ -799,6 +799,82 @@ class EnhancementTests(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    def test_expire_old_service_listings_and_get_expired_with_channel_msgs(self):
+        # 1. Old service listing (> 30 days)
+        lid_old_service = database.add_listing(101, "Old Service", "City", "100", None, "0911000000", fee_amount=50, listing_type="service")
+        database.execute_query("UPDATE listings SET created_at = '2020-01-01 00:00:00', status = 'paid' WHERE id = ?", (lid_old_service,), commit=True)
+        database.set_channel_message_id(lid_old_service, 8881)
+
+        # 2. Old property listing (> 30 days - should not expire)
+        lid_old_property = database.add_listing(102, "Old Property", "City", "200", None, "0911000000", fee_amount=50, listing_type="property")
+        database.execute_query("UPDATE listings SET created_at = '2020-01-01 00:00:00', status = 'paid' WHERE id = ?", (lid_old_property,), commit=True)
+        database.set_channel_message_id(lid_old_property, 8882)
+
+        # 3. New service listing (created today - should not expire)
+        lid_new_service = database.add_listing(103, "New Service", "City", "300", None, "0911000000", fee_amount=50, listing_type="service")
+        database.execute_query("UPDATE listings SET status = 'paid' WHERE id = ?", (lid_new_service,), commit=True)
+        database.set_channel_message_id(lid_new_service, 8883)
+
+        # Run database expiration
+        expired = database.expire_old_listings()
+        expired_ids = [item[0] for item in expired]
+        self.assertIn(lid_old_service, expired_ids)
+        self.assertNotIn(lid_old_property, expired_ids)
+        self.assertNotIn(lid_new_service, expired_ids)
+
+        # Verify statuses
+        self.assertEqual(database.get_listing_by_id(lid_old_service)[9], "expired")
+        self.assertEqual(database.get_listing_by_id(lid_old_property)[9], "paid")
+        self.assertEqual(database.get_listing_by_id(lid_new_service)[9], "paid")
+
+        # Verify get_expired_listings_with_channel_messages
+        pending_cleanup = database.get_expired_listings_with_channel_messages()
+        pending_ids = [item[0] for item in pending_cleanup]
+        self.assertIn(lid_old_service, pending_ids)
+        self.assertNotIn(lid_old_property, pending_ids)
+        self.assertNotIn(lid_new_service, pending_ids)
+
+    def test_process_expired_listings_auto_deletes_channel_message(self):
+        async def run_test():
+            lid = database.add_listing(201, "Auto Delete Service", "City", "150", None, "0911000000", fee_amount=50, listing_type="service")
+            database.execute_query("UPDATE listings SET created_at = '2020-01-01 00:00:00', status = 'paid' WHERE id = ?", (lid,), commit=True)
+            database.set_channel_message_id(lid, 9991)
+
+            bot = SimpleNamespace(
+                delete_message=AsyncMock()
+            )
+            context = SimpleNamespace(bot=bot)
+
+            with patch("main.CHANNEL_ID", "-1001234567890"):
+                await main.process_expired_listings(context)
+
+            bot.delete_message.assert_awaited_once_with(chat_id="-1001234567890", message_id=9991)
+            # Verify channel_message_id is now cleared
+            self.assertIsNone(database.get_channel_message_id(lid))
+
+        asyncio.run(run_test())
+
+    def test_process_expired_listings_handles_bad_request_gracefully(self):
+        async def run_test():
+            from telegram.error import BadRequest
+
+            lid = database.add_listing(202, "Bad Request Service", "City", "250", None, "0911000000", fee_amount=50, listing_type="service")
+            database.execute_query("UPDATE listings SET created_at = '2020-01-01 00:00:00', status = 'paid' WHERE id = ?", (lid,), commit=True)
+            database.set_channel_message_id(lid, 9992)
+
+            bot = SimpleNamespace(
+                delete_message=AsyncMock(side_effect=BadRequest("Message to delete not found"))
+            )
+            context = SimpleNamespace(bot=bot)
+
+            with patch("main.CHANNEL_ID", "-1001234567890"):
+                await main.process_expired_listings(context)
+
+            # Assert channel_message_id is cleared even if BadRequest occurred (so we don't repeatedly retry deleted msgs)
+            self.assertIsNone(database.get_channel_message_id(lid))
+
+        asyncio.run(run_test())
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -2077,6 +2077,26 @@ def _start_polling(application: Application) -> None:
     )
 
 
+async def process_expired_listings(context: ContextTypes.DEFAULT_TYPE):
+    """Expire old service listings and auto-delete their corresponding channel messages."""
+    database.expire_old_listings()
+    if CHANNEL_ID:
+        expired_with_msgs = database.get_expired_listings_with_channel_messages()
+        for item in expired_with_msgs:
+            listing_id = item[0]
+            channel_msg_id = item[1]
+            if channel_msg_id:
+                try:
+                    await context.bot.delete_message(chat_id=CHANNEL_ID, message_id=channel_msg_id)
+                    logger.info(f"Auto-deleted channel message {channel_msg_id} for expired listing {listing_id}")
+                    database.set_channel_message_id(listing_id, None)
+                except BadRequest as e:
+                    logger.warning(f"BadRequest auto-deleting channel message {channel_msg_id} for listing {listing_id}: {e}")
+                    database.set_channel_message_id(listing_id, None)
+                except Exception as e:
+                    logger.warning(f"Failed to auto-delete channel message {channel_msg_id} for expired listing {listing_id}: {e}")
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -2202,16 +2222,16 @@ def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_post_timeout_message))
 
-    # Schedule daily listings checks
+    # Schedule listings expiry checks and channel cleanup
     job_queue = application.job_queue
     if job_queue:
         from datetime import time, timezone, timedelta
         eat_tz = timezone(timedelta(hours=3))  # East Africa Time (UTC+3)
-        async def expire_listings_job(context: ContextTypes.DEFAULT_TYPE):
-            database.expire_old_listings()
 
+        # Run shortly after startup and daily at 03:00 EAT
+        job_queue.run_once(process_expired_listings, when=10)
         job_queue.run_daily(
-            expire_listings_job,
+            process_expired_listings,
             time=time(hour=3, minute=0, tzinfo=eat_tz)
         )
 

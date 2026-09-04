@@ -480,13 +480,22 @@ def get_listings_by_city(city, listing_type=None, property_purpose=None, categor
     return results
 
 def expire_old_listings():
-    """Mark service listings older than 30 days as expired."""
+    """Mark service listings older than 30 days as expired and return their (id, channel_message_id)."""
     is_postgres = use_postgres()
     if is_postgres:
-        query = "UPDATE listings SET status = 'expired' WHERE status = 'paid' AND listing_type = 'service' AND created_at::timestamp <= NOW() - INTERVAL '30 days'"
+        select_query = "SELECT id, channel_message_id FROM listings WHERE status = 'paid' AND listing_type = 'service' AND created_at::timestamp <= NOW() - INTERVAL '30 days'"
+        update_query = "UPDATE listings SET status = 'expired' WHERE status = 'paid' AND listing_type = 'service' AND created_at::timestamp <= NOW() - INTERVAL '30 days'"
     else:
-        query = "UPDATE listings SET status = 'expired' WHERE status = 'paid' AND listing_type = 'service' AND created_at <= date('now', '-30 days')"
-    execute_query(query, commit=True)
+        select_query = "SELECT id, channel_message_id FROM listings WHERE status = 'paid' AND listing_type = 'service' AND (datetime(created_at) <= datetime('now', '-30 days') OR created_at <= date('now', '-30 days'))"
+        update_query = "UPDATE listings SET status = 'expired' WHERE status = 'paid' AND listing_type = 'service' AND (datetime(created_at) <= datetime('now', '-30 days') OR created_at <= date('now', '-30 days'))"
+    expired = execute_query(select_query, fetchall=True) or []
+    if expired:
+        execute_query(update_query, commit=True)
+    return expired
+
+def get_expired_listings_with_channel_messages():
+    """Get all expired listings that still have a channel message ID."""
+    return execute_query("SELECT id, channel_message_id FROM listings WHERE status = 'expired' AND channel_message_id IS NOT NULL", fetchall=True) or []
 
 def get_active_listing_count():
     result = execute_query("SELECT COUNT(*) FROM listings WHERE status = 'paid'", fetchone=True)

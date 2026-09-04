@@ -24,7 +24,7 @@ app_port: 7860
 - **Manage listings** — view, renew, or unlist your active posts
 - **View seeker requests** — browse "looking for" posts from potential buyers/renters
 - **Category system** — Property: 🏠 House/Land, 🚗 Vehicle, 🛋️ Furniture, 📱 Electronics, 👗 Fashion/Beauty, 📦 Other; Service: 🔧 House, 🚗 Vehicle, 📱 Electronics, 👗 Fashion/Beauty, 📦 Other
-- **30-day listing expiry** for service listings (auto-expired via daily job)
+- **30-day listing expiry** for service listings (auto-expired via background job with automatic Telegram channel message deletion)
 
 ### For Buyers / Renters / Service Seekers
 - **Search listings** by city, neighborhood, and category with Amharic fuzzy matching
