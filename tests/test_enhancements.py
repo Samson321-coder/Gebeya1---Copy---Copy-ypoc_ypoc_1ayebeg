@@ -924,6 +924,161 @@ class EnhancementTests(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    def test_send_listing_page_does_not_show_payment_screenshot_to_admin(self):
+        async def run_test():
+            # Listing with no listing photos, but with a payment screenshot
+            listing = (
+                501,
+                100,
+                "Bole Apartment",
+                "Addis Ababa - Bole",
+                "20000",
+                None,
+                "0911000000",
+                "rent",
+                "2026-01-01 12:00:00",
+                "paid",
+                50.0,
+                "photo:receipt_screenshot_file_id",
+                None,
+                "property",
+            )
+            update = SimpleNamespace(
+                effective_user=SimpleNamespace(id=main.ADMIN_IDS[0] if main.ADMIN_IDS else 1),
+                effective_chat=SimpleNamespace(id=200),
+            )
+            bot = SimpleNamespace(
+                send_photo=AsyncMock(),
+                send_message=AsyncMock(),
+                send_media_group=AsyncMock(),
+            )
+            context = SimpleNamespace(
+                user_data={"current_listings": [listing], "is_for_owner": False},
+                bot=bot,
+            )
+
+            with patch("main.ADMIN_IDS", [update.effective_user.id]):
+                await main.send_listing_page(update, context, 0)
+
+            # Bot should send a text message, NOT send_photo with the payment screenshot
+            bot.send_photo.assert_not_called()
+            bot.send_media_group.assert_not_called()
+            bot.send_message.assert_called_once()
+
+            # Verify the text badge is preserved in the admin status summary
+            call_kwargs = bot.send_message.call_args[1]
+            sent_text = call_kwargs.get("text", "")
+            self.assertIn("🎫 TXID: [ክፍያ ስክሪንሾት (Screenshot)]", sent_text)
+
+        asyncio.run(run_test())
+
+    def test_send_listing_page_with_photos_does_not_append_payment_screenshot(self):
+        async def run_test():
+            # Listing with one listing photo, and a payment screenshot
+            listing = (
+                502,
+                100,
+                "Bole Apartment",
+                "Addis Ababa - Bole",
+                "20000",
+                "property_photo_1",
+                "0911000000",
+                "rent",
+                "2026-01-01 12:00:00",
+                "paid",
+                50.0,
+                "photo:receipt_screenshot_file_id",
+                None,
+                "property",
+            )
+            update = SimpleNamespace(
+                effective_user=SimpleNamespace(id=main.ADMIN_IDS[0] if main.ADMIN_IDS else 1),
+                effective_chat=SimpleNamespace(id=200),
+            )
+            bot = SimpleNamespace(
+                send_photo=AsyncMock(),
+                send_message=AsyncMock(),
+                send_media_group=AsyncMock(),
+            )
+            context = SimpleNamespace(
+                user_data={"current_listings": [listing], "is_for_owner": False},
+                bot=bot,
+            )
+
+            with patch("main.ADMIN_IDS", [update.effective_user.id]):
+                await main.send_listing_page(update, context, 0)
+
+            # It should send only property_photo_1, NOT send_media_group (which would happen if 2 photos were in photo_ids)
+            bot.send_media_group.assert_not_called()
+            bot.send_photo.assert_called_once()
+            photo_arg = bot.send_photo.call_args[1].get("photo")
+            self.assertEqual(photo_arg, "property_photo_1")
+
+        asyncio.run(run_test())
+
+    def test_looking_for_channel_post_shows_price_label(self):
+        async def run_test():
+            # Test template formatting
+            post_text = strings.LOOKING_FOR_CHANNEL_POST.format(
+                looking_for_title="ፈላጊ — ለግዢ",
+                seeker="user_123",
+                city="Addis Ababa",
+                neighborhood="Bole",
+                purpose="ግዢ (Buy)",
+                category="መኪና",
+                price="1,500,000 Birr",
+                contact="0911223344"
+            )
+            self.assertIn("💰 ዋጋ፦ <b>1,500,000 Birr</b>", post_text)
+            self.assertNotIn("መግለጫ", post_text)
+
+            # Test admin approving a looking_for listing triggers channel post with price
+            lid = database.add_listing(
+                owner_id=777,
+                title="🔎 ፈላጊ — መኪና — Looking for Toyota",
+                location="Addis Ababa - Bole",
+                price="1,500,000 Birr",
+                photo_file_id=None,
+                contact_phone="0911223344",
+                fee_amount=50.0,
+                listing_type="looking_for",
+                property_purpose="buy"
+            )
+
+            bot = SimpleNamespace(
+                send_message=AsyncMock(return_value=SimpleNamespace(message_id=9876)),
+                send_photo=AsyncMock(),
+                get_me=AsyncMock(return_value=SimpleNamespace(username="TestBot")),
+            )
+            context = SimpleNamespace(bot=bot, user_data={})
+
+            query = SimpleNamespace(
+                data=f"approve_{lid}",
+                answer=AsyncMock(),
+                edit_message_text=AsyncMock(),
+                message=SimpleNamespace(text="Approval request", photo=None)
+            )
+            update = SimpleNamespace(
+                callback_query=query,
+                effective_user=SimpleNamespace(id=1, username="admin"),
+                effective_chat=SimpleNamespace(id=1)
+            )
+
+            with patch("main.ADMIN_IDS", [1]), patch("main.CHANNEL_ID", "-100999999"):
+                await main.handle_callback(update, context)
+
+            # Find channel call
+            channel_calls = [
+                c for c in bot.send_message.call_args_list
+                if c.kwargs.get("chat_id") == "-100999999"
+            ]
+            self.assertEqual(len(channel_calls), 1)
+            sent_channel_text = channel_calls[0].kwargs.get("text", "")
+            self.assertIn("💰 ዋጋ፦ <b>1,500,000 Birr</b>", sent_channel_text)
+            self.assertNotIn("መግለጫ", sent_channel_text)
+
+        asyncio.run(run_test())
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -1614,13 +1614,6 @@ async def send_listing_page(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
     photo_ids = [p.strip() for p in item[5].split(",") if p and p.strip()] if item[5] else []
 
-    tx_val = get_listing_transaction_id_from_row(item)
-    tx_val = str(tx_val) if tx_val is not None else ""
-    if is_admin and tx_val.startswith("photo:"):
-        payment_photo = tx_val.split(":", 1)[1].strip()
-        if payment_photo:
-            photo_ids.append(payment_photo)
-
     chat_id = update.effective_chat.id
     func = context.bot.send_photo
     func_text = context.bot.send_message
@@ -1811,7 +1804,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         city_part, neigh_part = loc.split(" - ", 1) if " - " in loc else (loc, "ያልተገለጸ")
                         title_parts = (listing[2] or "").split(" — ", 1)
                         category_part = title_parts[1] if len(title_parts) > 1 else title_parts[0]
-                        desc_part = listing[4] or ""  # price field stores description for looking_for
+                        price_val = listing[4] or "ያልተገለጸ"
 
                         post_text = strings.LOOKING_FOR_CHANNEL_POST.format(
                             looking_for_title=get_looking_for_title(property_purpose_val),
@@ -1820,7 +1813,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             neighborhood=neigh_part.strip(),
                             purpose=purpose_am,
                             category=category_part.strip(),
-                            description=desc_part,
+                            price=price_val,
                             contact=listing[6] or "ያልተገለጸ"
                         )
 

@@ -200,10 +200,10 @@ LOOKING_FOR_CHANNEL_POST = (
     "🔎 <b>{looking_for_title}</b>\n\n"
     "👤 ፈላጊ። {seeker}\n"
     "📂 ምድብ፦ {category}\n\n"
-    "📝 መግለጫ፦\n{description}\n"
     "🛋️ ዓላማ/አይነት፦ {purpose}\n"
     "📌 ከተማ፦ {city}\n"
     "📍 ክፍለ ከተማ/ሰፈር፦ {neighborhood}\n"
+    "💰 ዋጋ፦ <b>{price}</b>\n" 
     "📞 ስልክ፦ {contact}"
 )
 
