@@ -110,7 +110,7 @@ def get_main_keyboard():
         [strings.ROLE_SELLER, strings.ROLE_LANDLORD],
         [strings.ROLE_BUYER, strings.ROLE_RENTER],
         [strings.ROLE_SERVICE_PROVIDER, strings.ROLE_SERVICE_SEEKER],
-        [strings.HELP_BTN]
+        [strings.HELP_BTN, strings.CHANNEL_BTN]
     ]
     return ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
 
@@ -130,6 +130,14 @@ def get_photo_keyboard():
         [[strings.DONE_PHOTOS_BTN], [strings.SKIP], [strings.CANCEL]],
         resize_keyboard=True
     )
+
+
+def get_channel_inline_keyboard():
+    """Return an InlineKeyboardMarkup with a non-mandatory channel join URL button."""
+    channel_url = f"https://t.me/{SUBSCRIPTION_CHANNEL}"
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(strings.CHANNEL_JOIN_BTN, url=channel_url)]
+    ])
 
 
 def get_listing_type_from_row(item):
@@ -453,6 +461,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_keyboard(),
         parse_mode='HTML'
     )
+    # Touchpoint 1: Non-mandatory channel nudge
+    try:
+        await update.message.reply_text(
+            "📢 ቻናላችንን ተቀላቅለው አዳዲስ ማስታወቂያዎችን ይከታተሉ፦",
+            reply_markup=get_channel_inline_keyboard()
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send channel nudge: {e}")
     return CHOOSING_ROLE
 
 
@@ -474,6 +490,20 @@ async def timeout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_post_timeout_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Catch-all message handler for post-timeout or unmatched non-command interactions."""
     await check_and_send_timeout_notice(update, context)
+
+
+async def handle_channel_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the 📢 ቻናላችን reply button — send channel info with join link."""
+    await update.message.reply_text(
+        strings.CHANNEL_INFO_MSG,
+        reply_markup=get_channel_inline_keyboard(),
+        parse_mode='HTML'
+    )
+    await update.message.reply_text(
+        "👇 ከታች ካሉት አማራጮች አንዱን ይምረጡ፦",
+        reply_markup=get_main_keyboard(),
+    )
+    return CHOOSING_ROLE
 
 
 # ─── Subscription Callback ────────────────────────────────────────────────────
@@ -980,6 +1010,14 @@ async def owner_submit_txid(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Failed to notify admin {admin_id}: {e}")
 
     await update.message.reply_text(strings.OWNER_PAYMENT_PENDING, reply_markup=get_main_keyboard())
+    # Touchpoint 3: Channel nudge after listing submission
+    try:
+        await update.message.reply_text(
+            strings.CHANNEL_POST_SUBMISSION_NOTE,
+            reply_markup=get_channel_inline_keyboard()
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send post-submission channel nudge: {e}")
     return CHOOSING_ROLE
 
 
@@ -1116,7 +1154,10 @@ async def seeker_browse_city(update: Update, context: ContextTypes.DEFAULT_TYPE)
             ]
 
         if not listings:
-            await update.message.reply_text(strings.SEEKER_NO_MATCH)
+            await update.message.reply_text(
+                strings.SEEKER_NO_MATCH,
+                reply_markup=get_channel_inline_keyboard()
+            )
             return SEEKER_MENU
 
         context.user_data['current_listings'] = listings
@@ -1137,7 +1178,10 @@ async def seeker_browse_city(update: Update, context: ContextTypes.DEFAULT_TYPE)
         ]
 
     if not listings:
-        await update.message.reply_text(strings.SEEKER_NO_MATCH)
+        await update.message.reply_text(
+            strings.SEEKER_NO_MATCH,
+            reply_markup=get_channel_inline_keyboard()
+        )
         return SEEKER_MENU
 
     context.user_data['current_listings'] = listings
@@ -1171,7 +1215,10 @@ async def execute_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
         category=context.user_data.get("seeker_category"),
     )
     if not listings:
-        await update.message.reply_text(strings.SEEKER_NO_MATCH)
+        await update.message.reply_text(
+            strings.SEEKER_NO_MATCH,
+            reply_markup=get_channel_inline_keyboard()
+        )
         return SEEKER_MENU
 
     context.user_data['current_listings'] = listings
@@ -1368,6 +1415,14 @@ async def seeker_looking_for_txid(update: Update, context: ContextTypes.DEFAULT_
         reply_markup=get_main_keyboard(),
         parse_mode='HTML'
     )
+    # Touchpoint 3: Channel nudge after looking-for submission
+    try:
+        await update.message.reply_text(
+            strings.CHANNEL_POST_SUBMISSION_NOTE,
+            reply_markup=get_channel_inline_keyboard()
+        )
+    except Exception as e:
+        logger.warning(f"Failed to send post-submission channel nudge: {e}")
     return CHOOSING_ROLE
 
 
@@ -1579,7 +1634,7 @@ async def send_listing_page(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             description=html.escape(str(desc_val)),
             contact=html.escape(str(item[6] or "ያልተገለጸ")),
             date=html.escape(str(created_at))
-        ) + status_msg + page_indicator
+        ) + status_msg + page_indicator + ("" if for_owner else strings.LISTING_CHANNEL_FOOTER)
     else:
         listing_type_am = get_listing_type_display_name(listing_type_val, property_purpose_val, item[2] if len(item) > 2 else None)
         listing_type_title = get_listing_title(listing_type_val, property_purpose_val, item[2] if len(item) > 2 else None)
@@ -1593,7 +1648,7 @@ async def send_listing_page(update: Update, context: ContextTypes.DEFAULT_TYPE, 
             contact=html.escape(str(item[6] or "")),
             listing_type_am=html.escape(str(listing_type_am)),
             date=html.escape(str(created_at))
-        ) + status_msg + page_indicator
+        ) + status_msg + page_indicator + ("" if for_owner else strings.LISTING_CHANNEL_FOOTER)
 
     nav_row = []
     if current_idx > 0:
@@ -2146,6 +2201,7 @@ def main():
                 MessageHandler(filters.Text(strings.ROLE_SERVICE_PROVIDER), owner_start),
                 MessageHandler(filters.Text(strings.ROLE_SERVICE_SEEKER), seeker_start),
                 MessageHandler(filters.Text(strings.HELP_BTN), help_command),
+                MessageHandler(filters.Text(strings.CHANNEL_BTN), handle_channel_btn),
                 CallbackQueryHandler(handle_callback),
             ],
             OWNER_MENU: [

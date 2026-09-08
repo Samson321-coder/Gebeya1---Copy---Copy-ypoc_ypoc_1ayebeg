@@ -23,6 +23,20 @@ NOT_SUBSCRIBED_MSG = (
 )
 SUBSCRIBED_OK = "✅ እናመሰግናለን! አሁን ቦቱን መጠቀም ይችላሉ።"
 
+# ── Non-Mandatory Channel Nudges ─────────────────────────────────────────────
+CHANNEL_BTN = "📢 ቻናላችን"
+CHANNEL_JOIN_BTN = "📢 ቻናላችንን ይቀላቀሉ"
+CHANNEL_INFO_MSG = (
+    "📢 <b>የገበያ መረጃ የቴሌግራም ቻናል</b>\n\n"
+    "በቻናላችን ላይ አዳዲስ ቤቶች፣ መኪናዎች፣ እቃዎች እና የተለያዩ አገልግሎቶች በየዕለቱ ይለጠፋሉ!\n"
+    "ቤተሰብ ይሁኑ፦"
+)
+CHANNEL_POST_SUBMISSION_NOTE = (
+    "📢 ማስታወቂያዎ ሲፈቀድ በ @gebeya_mereja_266 ቻናላችን ላይ ይለጠፋል።\n"
+    "ልጥፍዎን እና አዳዲስ መረጃዎችን ለመከታተል ቻናሉን ይቀላቀሉ፦"
+)
+LISTING_CHANNEL_FOOTER = "\n\n📢 አዳዲስ ማስታወቂያዎችን በ @gebeya_mereja_266 ይከታተሉ"
+
 ROLE_OWNER = "ሻጭ/አከራይ/አገልግሎት ሰጪ"
 ROLE_SEEKER = "ተከራይ/ገዢ/አገልግሎት ፈላጊ"
 # Split roles for clearer buttons
@@ -123,8 +137,16 @@ SEEKER_VIEW_ALL = "ሁሉንም ዝርዝሮች እይ"
 SEEKER_ASK_CATEGORY = "📂 ምድብ ይምረጡ:"
 SEEKER_ASK_SEARCH = "ክፍለ ከተማ/ሰፈር ከታች ካለው ዝርዝር ይምረጡ።"
 SEEKER_ASK_CITY = "📍 ከተማ ከታች ካለው ዝርዝር ይምረጡ።"
-SEEKER_NO_LISTINGS = "ምንም የተመዘገበ መረጃ አልተገኘም።"
-SEEKER_NO_MATCH = "በዚህ አካባቢ የተመዘገበ መረጃ አልተገኘም።"
+SEEKER_NO_LISTINGS = (
+    "ምንም የተመዘገበ መረጃ አልተገኘም።\n\n"
+    "ነገር ግን አዳዲስ ማስታወቂያዎች በየዕለቱ በቻናላችን ላይ ይለጠፋሉ!\n"
+    "ቻናሉን ተቀላቅለው ይከታተሉ፦"
+)
+SEEKER_NO_MATCH = (
+    "በዚህ አካባቢ የተመዘገበ መረጃ አልተገኘም።\n\n"
+    "ነገር ግን አዳዲስ ማስታወቂያዎች በየዕለቱ በቻናላችን ላይ ይለጠፋሉ!\n"
+    "ቻናሉን ተቀላቅለው ይከታተሉ፦"
+)
 
 # Looking For flow
 SEEKER_ASK_LOOKING_FOR = (
