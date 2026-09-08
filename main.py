@@ -44,6 +44,7 @@ ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 # Channel username for subscription check (without @)
 SUBSCRIPTION_CHANNEL = os.getenv("SUBSCRIPTION_CHANNEL", "gebeya_mereja_266")
+REQUIRE_CHANNEL_SUBSCRIPTION = os.getenv("REQUIRE_CHANNEL_SUBSCRIPTION", "false").lower() in ("true", "1", "yes")
 MAX_LISTING_PHOTOS = 5
 
 if not BOT_TOKEN:
@@ -78,6 +79,8 @@ if not BOT_TOKEN:
 
 async def is_subscribed(bot, user_id: int) -> bool:
     """Return True if the user is a member of the subscription channel."""
+    if not REQUIRE_CHANNEL_SUBSCRIPTION or not SUBSCRIPTION_CHANNEL:
+        return True
     try:
         member = await bot.get_chat_member(chat_id=f"@{SUBSCRIPTION_CHANNEL}", user_id=user_id)
         return member.status in ("member", "administrator", "creator")
@@ -438,8 +441,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return CHOOSING_ROLE
 
-    # Subscription check (skip for admins)
-    if user.id not in ADMIN_IDS:
+    # Subscription check (only if enabled, skip for admins)
+    if REQUIRE_CHANNEL_SUBSCRIPTION and user.id not in ADMIN_IDS:
         subscribed = await is_subscribed(context.bot, user.id)
         if not subscribed:
             await send_subscribe_prompt(update)

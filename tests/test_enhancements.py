@@ -1079,6 +1079,88 @@ class EnhancementTests(unittest.TestCase):
 
         asyncio.run(run_test())
 
+    def test_start_without_subscription_direct_access(self):
+        async def run_test():
+            captured = []
+            async def fake_reply_text(text, *args, **kwargs):
+                captured.append((text, kwargs))
+
+            bot_mock = SimpleNamespace(get_chat_member=AsyncMock())
+            update = SimpleNamespace(
+                effective_user=SimpleNamespace(id=9999, username="newuser"),
+                message=SimpleNamespace(text="/start", reply_text=fake_reply_text),
+                effective_message=SimpleNamespace(text="/start", reply_text=fake_reply_text),
+                callback_query=None,
+            )
+            context = SimpleNamespace(user_data={}, bot=bot_mock, args=[])
+
+            with patch("main.REQUIRE_CHANNEL_SUBSCRIPTION", False):
+                res = await main.start(update, context)
+
+            self.assertEqual(res, main.CHOOSING_ROLE)
+            self.assertEqual(len(captured), 1)
+            self.assertEqual(captured[0][0], strings.WELCOME_MSG)
+            # Verify get_chat_member was NEVER called
+            bot_mock.get_chat_member.assert_not_called()
+
+        asyncio.run(run_test())
+
+    def test_is_subscribed_bypassed_when_disabled(self):
+        async def run_test():
+            bot_mock = SimpleNamespace(get_chat_member=AsyncMock())
+            with patch("main.REQUIRE_CHANNEL_SUBSCRIPTION", False):
+                result = await main.is_subscribed(bot_mock, 9999)
+            self.assertTrue(result)
+            bot_mock.get_chat_member.assert_not_called()
+
+        asyncio.run(run_test())
+
+    def test_start_with_subscription_enabled_and_not_subscribed(self):
+        async def run_test():
+            captured = []
+            async def fake_reply_text(text, *args, **kwargs):
+                captured.append((text, kwargs))
+
+            update = SimpleNamespace(
+                effective_user=SimpleNamespace(id=8888, username="unsub_user"),
+                message=SimpleNamespace(text="/start", reply_text=fake_reply_text),
+                effective_message=SimpleNamespace(text="/start", reply_text=fake_reply_text),
+                callback_query=None,
+            )
+            context = SimpleNamespace(user_data={}, bot=SimpleNamespace(), args=[])
+
+            with patch("main.REQUIRE_CHANNEL_SUBSCRIPTION", True), patch.object(main, "is_subscribed", AsyncMock(return_value=False)):
+                res = await main.start(update, context)
+
+            self.assertEqual(res, main.CHOOSING_ROLE)
+            self.assertEqual(len(captured), 1)
+            self.assertEqual(captured[0][0], strings.SUBSCRIBE_PROMPT)
+
+        asyncio.run(run_test())
+
+    def test_handle_check_subscription_when_subscription_disabled(self):
+        async def run_test():
+            bot_mock = SimpleNamespace(send_message=AsyncMock())
+            query = SimpleNamespace(
+                data="check_subscription",
+                answer=AsyncMock(),
+                edit_message_text=AsyncMock()
+            )
+            update = SimpleNamespace(
+                callback_query=query,
+                effective_user=SimpleNamespace(id=7777, username="subscriber_user")
+            )
+            context = SimpleNamespace(bot=bot_mock, user_data={})
+
+            with patch("main.REQUIRE_CHANNEL_SUBSCRIPTION", False):
+                await main.handle_check_subscription(update, context)
+
+            query.edit_message_text.assert_called_once_with(strings.SUBSCRIBED_OK, parse_mode='HTML')
+            bot_mock.send_message.assert_called_once()
+            self.assertEqual(bot_mock.send_message.call_args.kwargs.get("text"), strings.WELCOME_MSG)
+
+        asyncio.run(run_test())
+
 if __name__ == "__main__":
     unittest.main()
 

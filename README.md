@@ -41,7 +41,7 @@ app_port: 7860
 - **Channel auto-posting** — approved listings are automatically posted to the Telegram channel
 
 ### General
-- **Mandatory channel subscription** — users must join the channel before using the bot
+- **Optional channel subscription gate** — can enforce channel subscription before bot usage or allow direct access (configurable via `REQUIRE_CHANNEL_SUBSCRIPTION`, default: `false`)
 - **Amharic fuzzy search** — phonetically equivalent Amharic characters are normalized (e.g., ሀ/ሃ/ሐ/ሓ/ኃ/ኀ all match)
 - **Input validation** — word limits (100 words) and character limits (500 chars) on descriptions; spaces and newlines between words count toward the character limit but not the word limit
 - **Conversation timeout** — sessions auto-expire after 15 minutes of inactivity
@@ -97,7 +97,8 @@ app_port: 7860
 | `DATABASE_URL` | ❌ | — | PostgreSQL connection string |
 | `SQLITE_PATH` | ❌ | `rental_bot.db` | Path to SQLite database file |
 | `CHANNEL_ID` | ❌ | — | Telegram channel ID/username for auto-posting (e.g., `@gebeya_mereja_266`) |
-| `SUBSCRIPTION_CHANNEL` | ❌ | `gebeya_mereja_266` | Channel username (without `@`) for mandatory subscription check |
+| `SUBSCRIPTION_CHANNEL` | ❌ | `gebeya_mereja_266` | Channel username (without `@`) for subscription check if enabled |
+| `REQUIRE_CHANNEL_SUBSCRIPTION` | ❌ | `false` | Whether users must be subscribed to `SUBSCRIPTION_CHANNEL` to access the bot (`true` / `false`) |
 | `PERSISTENCE_PATH` | ❌ | `bot_data.pickle` | Path for conversation persistence file |
 | `ENV` | ❌ | — | Set to `production` to disable local debug log file |
 
