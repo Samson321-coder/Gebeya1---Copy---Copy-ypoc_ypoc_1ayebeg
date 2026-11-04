@@ -1371,7 +1371,7 @@ async def seeker_looking_for_txid(update: Update, context: ContextTypes.DEFAULT_
     contact = context.user_data.get("looking_for_contact", "")
 
     purpose_val = context.user_data.get("looking_for_purpose", "")
-    purpose_am = {"buy": "ግዢ (Buy)", "rent": "ኪራይ (Rent)", "service": "አገልግሎት (Service)"}.get(purpose_val, purpose_val)
+    purpose_am = {"buy": "ግዢ", "rent": "ኪራይ", "service": "አገልግሎት"}.get(purpose_val, purpose_val)
 
     admin_msg = strings.SEEKER_LOOKING_FOR_ADMIN.format(
         seeker=seeker_name,
@@ -1379,7 +1379,7 @@ async def seeker_looking_for_txid(update: Update, context: ContextTypes.DEFAULT_
         city=context.user_data.get("looking_for_city", "አልተገለጸም"),
         neighborhood=context.user_data.get("looking_for_neighborhood", "አልተገለጸም"),
         purpose=purpose_am,
-        price=context.user_data.get("looking_for_price", "ያልተገለጸም"),
+        price=context.user_data.get("looking_for_price", "አልተገለጸም"),
         description=desc,
         contact=contact,
         txid=display_txid,
@@ -1396,7 +1396,7 @@ async def seeker_looking_for_txid(update: Update, context: ContextTypes.DEFAULT_
                 await context.bot.send_photo(
                     chat_id=admin_id,
                     photo=payment_photo_id,
-                    caption="💳 የክፍያ ማረጋገጫ — ፈላጊ ጥያቄ (Payment Proof)"
+                    caption="💳 የክፍያ ማረጋገጫ — ፈላጊ ጥያቄ"
                 )
             except Exception as e:
                 logger.error(f"Failed to send looking-for payment photo to admin {admin_id}: {e}")
@@ -1608,7 +1608,7 @@ async def send_listing_page(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         else:
             city_part, neigh_part = loc, "ሁሉም"
 
-        purpose_map = {"buy": "ግዢ (Buy)", "rent": "ኪራይ (Rent)", "service": "አገልግሎት (Service)"}
+        purpose_map = {"buy": "ግዢ", "rent": "ኪራይ", "service": "አገልግሎት"}
         purpose_am = purpose_map.get(property_purpose_val or "", property_purpose_val or "ያልተገለጸ")
 
         title_raw = item[2] or ""
@@ -1853,7 +1853,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     try:
                         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
                         property_purpose_val = get_property_purpose_from_row(listing)
-                        purpose_am = {"buy": "ግዢ (Buy)", "rent": "ኪራይ (Rent)", "service": "አገልግሎት (Service)"}.get(property_purpose_val or "", "ያልተገለጸ")
+                        purpose_am = {"buy": "ግዢ", "rent": "ኪራይ", "service": "አገልግሎት"}.get(property_purpose_val or "", "ያልተገለጸ")
 
                         # listing[2] = title (we used title as description for looking_for)
                         # listing[3] = location (city - neighborhood)
@@ -2163,7 +2163,8 @@ def main():
 
         from telegram import BotCommand
         await application.bot.set_my_commands([
-            BotCommand("start", "ጀምር")
+            # BotCommand("start", "ጀምር")
+            BotCommand("ጀምር")
         ])
 
         async def debug_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
