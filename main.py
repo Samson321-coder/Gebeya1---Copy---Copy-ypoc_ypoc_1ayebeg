@@ -2163,8 +2163,8 @@ def main():
 
         from telegram import BotCommand
         await application.bot.set_my_commands([
-            # BotCommand("start", "ጀምር")
-            BotCommand("ጀምር")
+            BotCommand("start", "ጀምር")
+            # BotCommand("ጀምር")
         ])
 
         async def debug_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
