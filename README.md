@@ -12,7 +12,7 @@ app_port: 7860
 
 **Ayebeg** (ገበያ) is an Amharic-language Telegram bot that connects **sellers, landlords, and service providers** with **buyers, renters, and service seekers** across Ethiopia. Users can post listings, browse by category and location, submit "looking for" requests, and more — all within Telegram.
 
-> **Live Channel:** [@gebeya_mereja_266](https://t.me/gebeya_mereja_266)
+> **Live Channel:** [@sam_bot_mereja](https://t.me/sam_bot_mereja)
 
 ---
 
@@ -96,8 +96,8 @@ app_port: 7860
 | `DB_ENGINE` | ❌ | Auto | `sqlite` or `postgres` |
 | `DATABASE_URL` | ❌ | — | PostgreSQL connection string |
 | `SQLITE_PATH` | ❌ | `rental_bot.db` | Path to SQLite database file |
-| `CHANNEL_ID` | ❌ | — | Telegram channel ID/username for auto-posting (e.g., `@gebeya_mereja_266`) |
-| `SUBSCRIPTION_CHANNEL` | ❌ | `gebeya_mereja_266` | Channel username (without `@`) for subscription check if enabled |
+| `CHANNEL_ID` | ❌ | — | Telegram channel ID/username for auto-posting (e.g., `@sam_bot_mereja`) |
+| `SUBSCRIPTION_CHANNEL` | ❌ | `sam_bot_mereja` | Channel username (without `@`) for subscription check if enabled |
 | `REQUIRE_CHANNEL_SUBSCRIPTION` | ❌ | `false` | Whether users must be subscribed to `SUBSCRIPTION_CHANNEL` to access the bot (`true` / `false`) |
 | `PERSISTENCE_PATH` | ❌ | `bot_data.pickle` | Path for conversation persistence file |
 | `ENV` | ❌ | — | Set to `production` to disable local debug log file |

@@ -7,7 +7,7 @@
 **Target Market:** Ethiopia (Addis Ababa, Dilla, Regional Urban Centers)  
 **Primary Language:** Amharic (አማርኛ) / English  
 **Bot Identifier:** `@AkerayTekerayBot`  
-**Official Channel:** `@gebeya_mereja_266`  
+**Official Channel:** `@sam_bot_mereja`
 
 ---
 
@@ -36,7 +36,7 @@
 - Provide a guided conversational workflow for structured listing creation.
 - Automatically watermark every listing image with the official bot handle.
 - Normalise all search queries and metadata with phonetic equivalence mapping.
-- Seamlessly cross-post vetted listings to the broadcast channel `@gebeya_mereja_266`.
+- Seamlessly cross-post vetted listings to the broadcast channel `@sam_bot_mereja`.
 
 ---
 
@@ -68,7 +68,7 @@
 
 ### 4.3 Administrators (Platform Operations)
 - **US-10 [Payment Approval Flow]:** As an admin, I want to review submitted payment receipts (screenshot/TXID), compare with CBE account records, and approve/reject listings with one tap.
-- **US-11 [Channel Broadcast Automation]:** As an admin, upon approving a listing, I want the bot to automatically format and publish a polished card with images to `@gebeya_mereja_266`.
+- **US-11 [Channel Broadcast Automation]:** As an admin, upon approving a listing, I want the bot to automatically format and publish a polished card with images to `@sam_bot_mereja`.
 - **US-12 [System Health & Metrics]:** As an admin, I want a `/stats` or `/admin` dashboard displaying active users, listings by category, and pending approval queues.
 - **US-13 [Mass Broadcast]:** As an admin, I want to send system announcements or promotion messages to all registered users via `/broadcast`.
 
@@ -110,10 +110,10 @@ sequenceDiagram
     participant Watermark as Watermark Engine (Pillow)
     participant DB as PostgreSQL / SQLite
     actor Admin as Platform Admin
-    participant Channel as @gebeya_mereja_266
+    participant Channel as @sam_bot_mereja
 
     Seller->>Bot: /start or Choose Role (ሻጭ/አከራይ/አገልግሎት ሰጪ)
-    Bot->>Bot: Validate Channel Subscription (@gebeya_mereja_266)
+    Bot->>Bot: Validate Channel Subscription (@sam_bot_mereja)
     Bot->>Seller: Request Listing Title & Description
     Seller->>Bot: Input Title (Max 100 words, 500 chars)
     Bot->>Seller: Select Category & Sub-Category
@@ -142,7 +142,7 @@ sequenceDiagram
 | **Amharic Homophone Fuzzy Search** | Database-level phonetic normalization for Ge'ez characters | **Must Have** (P0) |
 | **Automated Image Watermarking** | Real-time Pillow branding with `@AkerayTekerayBot` | **Must Have** (P0) |
 | **Admin Moderation & Approval** | In-chat review of payment proofs, one-click approve/reject | **Must Have** (P0) |
-| **Channel Auto-Publishing** | Real-time publishing to `@gebeya_mereja_266` upon approval | **Must Have** (P0) |
+| **Channel Auto-Publishing** | Real-time publishing to `@sam_bot_mereja` upon approval | **Must Have** (P0) |
 | **30-Day Service Expiry & Renewal**| Automated background lifecycle management for service posts | **Should Have** (P1) |
 | **Telegram Mini App Gallery** | Lightweight HTML5/JS touch-enabled image carousel | **Should Have** (P1) |
 | **"Looking For" Seeker Board** | Buyer demand board browsable by suppliers | **Should Have** (P1) |
@@ -267,7 +267,7 @@ To guarantee resilient search results across heterogeneous Ethiopian mobile keyb
 | Metric Category | Key Performance Indicator (KPI) | Target (6 Months Post-Launch) |
 |---|---|---|
 | **User Acquisition** | Total Registered Users (`users` count) | > 25,000 users |
-| **Channel Growth** | `@gebeya_mereja_266` Subscribers | > 15,000 subscribers |
+| **Channel Growth** | `@sam_bot_mereja` Subscribers | > 15,000 subscribers |
 | **Listing Throughput** | Approved Listings per Month | > 1,200 active listings |
 | **Monetization** | Monthly Fee Revenue (50 ETB / post) | > 60,000 ETB / month |
 | **Moderation Speed** | Average Time to Approve/Reject | < 15 minutes during business hours |
@@ -281,7 +281,7 @@ To guarantee resilient search results across heterogeneous Ethiopian mobile keyb
 - [x] Multi-category listing engine with 5-photo upload limit.
 - [x] Real-time Pillow image watermarking (`@AkerayTekerayBot`) and collage builder.
 - [x] Manual payment verification flow (50 ETB via CBE).
-- [x] Admin approval dashboard & auto-posting to `@gebeya_mereja_266`.
+- [x] Admin approval dashboard & auto-posting to `@sam_bot_mereja`.
 - [x] Telegram Mini App touch gallery for rich media display.
 - [x] Amharic phonetic fuzzy search.
 

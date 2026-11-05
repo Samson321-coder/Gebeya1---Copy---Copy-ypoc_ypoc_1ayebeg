@@ -43,7 +43,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()]
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 # Channel username for subscription check (without @)
-SUBSCRIPTION_CHANNEL = os.getenv("SUBSCRIPTION_CHANNEL", "gebeya_mereja_266")
+SUBSCRIPTION_CHANNEL = os.getenv("SUBSCRIPTION_CHANNEL", "sam_bot_mereja")
 REQUIRE_CHANNEL_SUBSCRIPTION = os.getenv("REQUIRE_CHANNEL_SUBSCRIPTION", "false").lower() in ("true", "1", "yes")
 MAX_LISTING_PHOTOS = 5
 

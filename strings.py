@@ -5,21 +5,21 @@ WELCOME_MSG = (
     "✨ <b>እንኳን በደህና መጡ!</b> ✨\n\n"
     "🏠 ይህ ቦት በኢትዮጵያ ሻጮችን፣ አከራዮችን፣ እና አገልግሎት ሰጪዎችን ከ ገዢዎች፣ ተከራዮች፣ እና አገልግሎት ፈላጊዎች ጋር በቀላሉ ያገናኛል።\n\n"
     "👇 <i>ከታች ካሉት አማራጮች አንዱን ይምረጡ፦</i>\n\n"
-    # "ተጨማሪ መረጃ t.me/gebeya_mereja_266 Telegram Channel ላይ ይመልከቱ"   
+    # "ተጨማሪ መረጃ t.me/sam_bot_mereja Telegram Channel ላይ ይመልከቱ"
 )     
 
 # ── Channel subscription ──────────────────────────────────────────────────────
 SUBSCRIBE_PROMPT = (
     # "📢 <b>እባክዎን ለቀጠናችን ቻናል ይጠቀሙ!</b>\n\n"
     # "📢 <b>እባክዎን ቀጣዩን ቻናል ይጠቀሙ!</b>\n\n"
-    "ቦቱን ለመጠቀም እንድሁም ተጨማሪ መረጃ እንድደርሶ <b>@gebeya_mereja_266</b> ቻናላችንን ይቀላቀሉ (Join ያድርጉ)፣ ቀጥለው <b>✅ ተቀላቀልኩ</b> ን ይጫኑ።"
+    "ቦቱን ለመጠቀም እንድሁም ተጨማሪ መረጃ እንድደርሶ <b>@sam_bot_mereja</b> ቻናላችንን ይቀላቀሉ (Join ያድርጉ)፣ ቀጥለው <b>✅ ተቀላቀልኩ</b> ን ይጫኑ።"
 )
 SUBSCRIBE_BTN = "✅ ተቀላቀልኩ — ቀጥል"
-SUBSCRIBE_CHANNEL_URL = "https://t.me/gebeya_mereja_266"  
+SUBSCRIBE_CHANNEL_URL = "https://t.me/sam_bot_mereja"
 NOT_SUBSCRIBED_MSG = (
     # "❌ <b>ቻናሉን እስካልተቀላቀሉ ቦቱ አይሰራም።</b>\n\n" 
     # "❌ <b>ቻናሉን እስካልተቀላቀሉ ቦቱ አይሰራም።</b>\n\n" 
-    "ቦቱን ለመጠቀም እንድሁም ተጨማሪ መረጃ እንድደርሶ እባክዎን @gebeya_mereja_266 ቻናላችንን ይቀላቀሉ (Join ያድርጉ) ከዚያ <b>✅ ተቀላቀልኩ</b> ን ይጫኑ።"
+    "ቦቱን ለመጠቀም እንድሁም ተጨማሪ መረጃ እንድደርሶ እባክዎን @sam_bot_mereja ቻናላችንን ይቀላቀሉ (Join ያድርጉ) ከዚያ <b>✅ ተቀላቀልኩ</b> ን ይጫኑ።"
 )
 SUBSCRIBED_OK = "✅ እናመሰግናለን! አሁን ቦቱን መጠቀም ይችላሉ።"
 
@@ -32,10 +32,10 @@ CHANNEL_INFO_MSG = (
     "ቤተሰብ ይሁኑ፦"
 )
 CHANNEL_POST_SUBMISSION_NOTE = (
-    "📢 ማስታወቂያዎ ሲፈቀድ በ @gebeya_mereja_266 ቻናላችን ላይ ይለጠፋል።\n"
+    "📢 ማስታወቂያዎ ሲፈቀድ በ @sam_bot_mereja ቻናላችን ላይ ይለጠፋል።\n"
     "ልጥፍዎን እና አዳዲስ መረጃዎችን ለመከታተል ቻናሉን ይቀላቀሉ፦"
 )
-LISTING_CHANNEL_FOOTER = "\n\n📢 አዳዲስ ማስታወቂያዎችን በ @gebeya_mereja_266 ይከታተሉ"
+LISTING_CHANNEL_FOOTER = "\n\n📢 አዳዲስ ማስታወቂያዎችን በ @sam_bot_mereja ይከታተሉ"
 
 ROLE_OWNER = "ሻጭ/አከራይ/አገልግሎት ሰጪ"
 ROLE_SEEKER = "ተከራይ/ገዢ/አገልግሎት ፈላጊ"
