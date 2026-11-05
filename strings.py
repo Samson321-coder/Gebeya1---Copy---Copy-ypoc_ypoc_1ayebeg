@@ -304,5 +304,5 @@ HELP_MSG = (
     # "• /help - ይህን ገጽ ለማሳየት\n\n"
 
     "<b>ተጨማሪ መረጃ</b>\n"
-    "• t.me/gebeya_mereja_266 Telegram Channel ላይ ይመልከቱ"
+    "• t.me/sam_bot_mereja Telegram Channel ላይ ይመልከቱ"
 )
