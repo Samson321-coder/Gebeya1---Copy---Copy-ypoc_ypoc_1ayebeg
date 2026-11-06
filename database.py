@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
 
@@ -299,15 +299,19 @@ def approve_listing(listing_id):
 
 
 def is_listing_channel_notified(listing_id):
-    result = execute_query('SELECT channel_notified_at FROM listings WHERE id = %s', (listing_id,), fetchone=True)
+    result = execute_query('SELECT channel_message_id FROM listings WHERE id = %s', (listing_id,), fetchone=True)
     return bool(result and result[0])
 
 
 def reserve_listing_channel_notification(listing_id):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    stale_before = (datetime.now() - timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
     is_postgres = use_postgres()
-    query = 'UPDATE listings SET channel_notified_at = %s WHERE id = %s AND channel_notified_at IS NULL'
-    params = (now, listing_id)
+    query = '''UPDATE listings SET channel_notified_at = %s
+               WHERE id = %s
+               AND (channel_notified_at IS NULL
+                    OR (channel_message_id IS NULL AND channel_notified_at < %s))'''
+    params = (now, listing_id, stale_before)
     if not is_postgres:
         query = query.replace("%s", "?")
 
@@ -383,6 +387,11 @@ def _split_location(location):
     return location.strip(), ''
 
 
+def _normalize_city_query(city):
+    """Ignore descriptive area suffixes in city-picker labels when searching listings."""
+    return (city or '').split('/', 1)[0].strip()
+
+
 def search_listings(query):
     """Search active listings using Amharic-aware fuzzy matching on location and title."""
     all_listings = execute_query("SELECT * FROM listings WHERE status = 'paid' ORDER BY id DESC", fetchall=True)
@@ -437,7 +446,7 @@ def search_listings_by_location(city_query, neighborhood_query=None, listing_typ
     if not all_listings:
         return []
 
-    city_query = (city_query or '').strip()
+    city_query = _normalize_city_query(city_query)
     neighborhood_query = (neighborhood_query or '').strip() if neighborhood_query else ''
 
     results = []
@@ -469,8 +478,9 @@ def get_listings_by_city(city, listing_type=None, property_purpose=None, categor
     all_listings = execute_query("SELECT * FROM listings WHERE status = 'paid' ORDER BY id DESC", fetchall=True)
     if not all_listings:
         return []
+    city_query = _normalize_city_query(city)
     results = [row for row in all_listings
-               if fuzzy_amharic_match(city, row[3] or '')]  # location column only
+               if fuzzy_amharic_match(city_query, row[3] or '')]  # location column only
     if listing_type:
         results = [r for r in results if _get_listing_type_value(r) in {None, listing_type}]
     if property_purpose:
@@ -610,4 +620,3 @@ def delete_alert(alert_id, telegram_id):
     if not use_postgres():
         query = query.replace("%s", "?")
     execute_query(query, (alert_id, telegram_id), commit=True)
-

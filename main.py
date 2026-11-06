@@ -49,6 +49,8 @@ MAX_LISTING_PHOTOS = 5
 
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN environment variable is not set!")
+if not CHANNEL_ID:
+    logger.warning("CHANNEL_ID is not set; approved listings will not be posted to a channel.")
 
 # ─── Conversation States ───────────────────────────────────────────────────────
 (
@@ -1493,32 +1495,32 @@ async def post_listing_to_channel(context, listing, listing_type_val, property_p
             logger.info(f"Another channel post is already being processed for listing {listing_id}")
             return
 
-    listing_type_am = get_listing_type_display_name(listing_type_val, property_purpose_val, listing[2] if len(listing) > 2 else None)
-    listing_type_title = get_listing_title(listing_type_val, property_purpose_val, listing[2] if len(listing) > 2 else None)
-
-    created_at = get_listing_created_at(listing) or "ያልተገለጸ"
-    text = strings.LISTING_TEMPLATE.format(
-        listing_type_title=listing_type_title,
-        title=listing[2],
-        location=listing[3],
-        price=listing[4],
-        contact=listing[6],
-        listing_type_am=listing_type_am,
-        date=created_at,
-    )
-
-    bot_username = (await context.bot.get_me()).username
-    bot_link = f"https://t.me/{bot_username}"
-    view_text = f"\n\n🔗 ወደ ቦቱ ለመግባት: {bot_link}"
-
-    if listing[5]:
-        photo_ids = listing[5].split(",") if listing[5] else []
-    else:
-        photo_ids = []
-
-    deep_link_url = f"https://t.me/{bot_username}?start=view_{listing_id}" if listing_id else bot_link
-
     try:
+        listing_type_am = get_listing_type_display_name(listing_type_val, property_purpose_val, listing[2] if len(listing) > 2 else None)
+        listing_type_title = get_listing_title(listing_type_val, property_purpose_val, listing[2] if len(listing) > 2 else None)
+
+        created_at = get_listing_created_at(listing) or "ያልተገለጸ"
+        text = strings.LISTING_TEMPLATE.format(
+            listing_type_title=listing_type_title,
+            title=listing[2],
+            location=listing[3],
+            price=listing[4],
+            contact=listing[6],
+            listing_type_am=listing_type_am,
+            date=created_at,
+        )
+
+        bot_username = (await context.bot.get_me()).username
+        bot_link = f"https://t.me/{bot_username}"
+        view_text = f"\n\n🔗 ወደ ቦቱ ለመግባት: {bot_link}"
+
+        if listing[5]:
+            photo_ids = listing[5].split(",") if listing[5] else []
+        else:
+            photo_ids = []
+
+        deep_link_url = f"https://t.me/{bot_username}?start=view_{listing_id}" if listing_id else bot_link
+
         if photo_ids:
             extra_count = len(photo_ids) - 1
             if extra_count > 0:
@@ -1554,6 +1556,58 @@ async def post_listing_to_channel(context, listing, listing_type_val, property_p
         if listing_id is not None:
             database.clear_listing_channel_notification(listing_id)
         logger.exception(f"Failed to post listing {listing[0]} to channel {channel_id}: {e}")
+        raise
+
+
+async def post_looking_for_listing_to_channel(context, listing, property_purpose_val, channel_id=None):
+    """Post a looking-for listing and persist its channel message ID."""
+    channel_id = channel_id or CHANNEL_ID
+    if not channel_id:
+        return
+
+    listing_id = listing[0]
+    if database.is_listing_channel_notified(listing_id):
+        logger.info(f"Skipping duplicate looking-for channel post for listing {listing_id}")
+        return
+    if not database.reserve_listing_channel_notification(listing_id):
+        logger.info(f"Another looking-for channel post is already being processed for listing {listing_id}")
+        return
+
+    try:
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+        purpose_am = {"buy": "ግዢ", "rent": "ኪራይ", "service": "አገልግሎት"}.get(property_purpose_val or "", "ያልተገለጸ")
+        loc = listing[3] or ""
+        city_part, neigh_part = loc.split(" - ", 1) if " - " in loc else (loc, "ያልተገለጸ")
+        title_parts = (listing[2] or "").split(" — ", 1)
+        category_part = title_parts[1] if len(title_parts) > 1 else title_parts[0]
+        post_text = strings.LOOKING_FOR_CHANNEL_POST.format(
+            looking_for_title=get_looking_for_title(property_purpose_val),
+            seeker=str(listing[1]),
+            city=city_part.strip(),
+            neighborhood=neigh_part.strip(),
+            purpose=purpose_am,
+            category=category_part.strip(),
+            price=listing[4] or "ያልተገለጸ",
+            contact=listing[6] or "ያልተገለጸ",
+        )
+
+        bot_username = (await context.bot.get_me()).username
+        bot_link = f"https://t.me/{bot_username}"
+        reply_markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("ወደ ቦቱ ይግቡ", url=bot_link)]
+        ])
+        sent_msg = await context.bot.send_message(
+            chat_id=channel_id,
+            text=post_text,
+            parse_mode='HTML',
+            reply_markup=reply_markup,
+        )
+        database.set_channel_message_id(listing_id, sent_msg.message_id)
+        database.mark_listing_channel_notified(listing_id)
+    except Exception:
+        database.clear_listing_channel_notification(listing_id)
+        logger.exception(f"Failed to post looking_for listing {listing_id} to channel {channel_id}")
         raise
 
 
@@ -1821,19 +1875,33 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         listing_id = int(query.data.split("_")[1])
-        if mark_admin_action_processed(context, listing_id, "approve"):
-            return
-
         listing = database.get_listing_by_id(listing_id)
         if not listing:
             return
 
         current_status = get_listing_status_from_row(listing)
         if current_status == 'paid':
+            if CHANNEL_ID:
+                listing_type_val = get_listing_type_from_row(listing)
+                property_purpose_val = get_property_purpose_from_row(listing)
+                try:
+                    if listing_type_val == 'looking_for':
+                        await post_looking_for_listing_to_channel(
+                            context, listing, property_purpose_val, channel_id=CHANNEL_ID
+                        )
+                    else:
+                        await post_listing_to_channel(
+                            context, listing, listing_type_val, property_purpose_val, channel_id=CHANNEL_ID
+                        )
+                except Exception as e:
+                    logger.error(f"Failed to retry channel post for listing {listing_id}: {e}")
             try:
                 await query.edit_message_text(text=f"{query.message.text}\n\n✅ {strings.ADMIN_APPROVE_CONFIRM}")
             except Exception:
                 pass
+            return
+
+        if mark_admin_action_processed(context, listing_id, "approve"):
             return
 
         database.approve_listing(listing_id)
@@ -1851,48 +1919,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                 if CHANNEL_ID:
                     try:
-                        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
                         property_purpose_val = get_property_purpose_from_row(listing)
-                        purpose_am = {"buy": "ግዢ", "rent": "ኪራይ", "service": "አገልግሎት"}.get(property_purpose_val or "", "ያልተገለጸ")
-
-                        # listing[2] = title (we used title as description for looking_for)
-                        # listing[3] = location (city - neighborhood)
-                        # listing[6] = contact
-                        loc = listing[3] or ""
-                        city_part, neigh_part = loc.split(" - ", 1) if " - " in loc else (loc, "ያልተገለጸ")
-                        title_parts = (listing[2] or "").split(" — ", 1)
-                        category_part = title_parts[1] if len(title_parts) > 1 else title_parts[0]
-                        price_val = listing[4] or "ያልተገለጸ"
-
-                        post_text = strings.LOOKING_FOR_CHANNEL_POST.format(
-                            looking_for_title=get_looking_for_title(property_purpose_val),
-                            seeker=str(owner_id),
-                            city=city_part.strip(),
-                            neighborhood=neigh_part.strip(),
-                            purpose=purpose_am,
-                            category=category_part.strip(),
-                            price=price_val,
-                            contact=listing[6] or "ያልተገለጸ"
+                        await post_looking_for_listing_to_channel(
+                            context, listing, property_purpose_val, channel_id=CHANNEL_ID
                         )
-
-                        bot_username = (await context.bot.get_me()).username
-                        bot_link = f"https://t.me/{bot_username}"
-                        lf_keyboard = [[InlineKeyboardButton("ወደ ቦቱ ይግቡ", url=bot_link)]]
-                        lf_reply_markup = InlineKeyboardMarkup(lf_keyboard)
-
-                        if listing[0] is not None and not database.reserve_listing_channel_notification(listing[0]):
-                            logger.info(f"Skipping duplicate looking-for channel post for listing {listing[0]}")
-                            return
-
-                        try:
-                            sent_msg = await context.bot.send_message(chat_id=CHANNEL_ID, text=post_text, parse_mode='HTML', reply_markup=lf_reply_markup)
-                            if listing[0] is not None:
-                                database.set_channel_message_id(listing[0], sent_msg.message_id)
-                                database.mark_listing_channel_notified(listing[0])
-                        except Exception as lf_error:
-                            if listing[0] is not None:
-                                database.clear_listing_channel_notification(listing[0])
-                            raise lf_error
                     except Exception as e:
                         logger.error(f"Failed to post looking_for to channel: {e}")
             else:

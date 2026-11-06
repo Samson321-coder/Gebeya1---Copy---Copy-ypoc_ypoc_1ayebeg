@@ -112,6 +112,32 @@ class EnhancementTests(unittest.TestCase):
         self.assertEqual(len(service_listings), 1)
         self.assertEqual(service_listings[0][2], "Listing 3")
 
+    def test_city_search_matches_picker_label_and_base_city_locations(self):
+        labels_and_locations = (
+            ("አዲስ አበባ/ዙሪያ", "አዲስ አበባ - ቦሌ"),
+            ("ዲላ/አካባቢዋ", "ዲላ - መነሃሪያ"),
+        )
+        for index, (picker_label, stored_location) in enumerate(labels_and_locations, start=1):
+            listing_id = database.add_listing(
+                100 + index,
+                f"Listing {index}",
+                stored_location,
+                "1000",
+                None,
+                "0911000000",
+                listing_type="property",
+                property_purpose="sell",
+            )
+            database.approve_listing(listing_id)
+
+            city_results = database.get_listings_by_city(picker_label, listing_type="property")
+            search_results = database.search_listings_by_location(
+                picker_label, listing_type="property"
+            )
+
+            self.assertEqual([row[0] for row in city_results], [listing_id])
+            self.assertEqual([row[0] for row in search_results], [listing_id])
+
     def test_seeker_menu_keyboard_has_no_alert_buttons(self):
         keyboard = main.get_seeker_menu_keyboard()
         labels = [label for row in keyboard.keyboard for label in row]
@@ -402,6 +428,106 @@ class EnhancementTests(unittest.TestCase):
                 await main.post_listing_to_channel(context, listing, "property", "sell", channel_id="channel")
 
             bot.send_message.assert_awaited_once()
+            self.assertTrue(database.is_listing_channel_notified(listing_id))
+
+        asyncio.run(run_test())
+
+    def test_post_listing_to_channel_clears_reservation_when_bot_lookup_fails(self):
+        async def run_test():
+            listing_id = database.add_listing(
+                100,
+                "Luxury Home",
+                "አዲስ አበባ - ቦሌ",
+                "5000",
+                None,
+                "0911000000",
+                listing_type="property",
+                property_purpose="sell",
+            )
+            listing = database.get_listing_by_id(listing_id)
+            bot = SimpleNamespace(
+                send_photo=AsyncMock(),
+                send_message=AsyncMock(return_value=SimpleNamespace(message_id=7)),
+                get_me=AsyncMock(side_effect=[
+                    RuntimeError("temporary Telegram API failure"),
+                    SimpleNamespace(username="demo_bot"),
+                ]),
+            )
+            context = SimpleNamespace(bot=bot)
+
+            with self.assertRaisesRegex(RuntimeError, "temporary Telegram API failure"):
+                await main.post_listing_to_channel(context, listing, "property", "sell", channel_id="channel")
+
+            self.assertFalse(database.is_listing_channel_notified(listing_id))
+            await main.post_listing_to_channel(context, listing, "property", "sell", channel_id="channel")
+            bot.send_message.assert_awaited_once()
+            self.assertTrue(database.is_listing_channel_notified(listing_id))
+
+        asyncio.run(run_test())
+
+    def test_stale_channel_notification_reservation_can_be_reclaimed(self):
+        listing_id = database.add_listing(
+            100,
+            "Luxury Home",
+            "አዲስ አበባ - ቦሌ",
+            "5000",
+            None,
+            "0911000000",
+            listing_type="property",
+            property_purpose="sell",
+        )
+        database.execute_query(
+            "UPDATE listings SET channel_notified_at = %s WHERE id = %s",
+            ("2000-01-01 00:00:00", listing_id),
+            commit=True,
+        )
+
+        self.assertFalse(database.is_listing_channel_notified(listing_id))
+        self.assertTrue(database.reserve_listing_channel_notification(listing_id))
+
+    def test_paid_listing_approval_can_retry_failed_channel_post(self):
+        async def run_test():
+            listing_id = database.add_listing(
+                100,
+                "Luxury Home",
+                "አዲስ አበባ - ቦሌ",
+                "5000",
+                None,
+                "0911000000",
+                listing_type="property",
+                property_purpose="sell",
+            )
+            query = SimpleNamespace(
+                data=f"approve_{listing_id}",
+                answer=AsyncMock(),
+                edit_message_text=AsyncMock(),
+                message=SimpleNamespace(text="pending", photo=None),
+            )
+            bot = SimpleNamespace(
+                send_message=AsyncMock(return_value=SimpleNamespace(message_id=8)),
+                send_photo=AsyncMock(),
+                get_me=AsyncMock(side_effect=[
+                    RuntimeError("temporary Telegram API failure"),
+                    SimpleNamespace(username="demo_bot"),
+                ]),
+            )
+            context = SimpleNamespace(bot=bot, user_data={}, bot_data={})
+            update = SimpleNamespace(
+                callback_query=query,
+                effective_user=SimpleNamespace(id=1),
+                effective_chat=SimpleNamespace(id=1),
+            )
+
+            with patch.object(main, "ADMIN_IDS", [1]), patch.object(main, "CHANNEL_ID", "channel"):
+                await main.handle_callback(update, context)
+                await main.handle_callback(update, context)
+
+            self.assertEqual(bot.get_me.await_count, 2)
+            channel_calls = [
+                call for call in bot.send_message.call_args_list
+                if call.kwargs.get("chat_id") == "channel"
+            ]
+            self.assertEqual(len(channel_calls), 1)
             self.assertTrue(database.is_listing_channel_notified(listing_id))
 
         asyncio.run(run_test())
@@ -1163,5 +1289,3 @@ class EnhancementTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
